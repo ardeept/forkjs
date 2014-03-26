@@ -1,4 +1,11 @@
-/** SAMPLE APP **/
+/** 
+
+   SAMPLE APP 
+
+   This app will do nothing but to output "Hello world" into the stream until it reaches the max count.
+
+**/
+
 
 var util            = require('util');
 var EventEmitter    = require('events').EventEmitter;
@@ -48,7 +55,7 @@ var Echo = function(c)
       {
          self.echoed++
 
-         console.log(self.echoed, 'Hello world');
+         // console.log(self.echoed, 'Hello world');
 
          self.emit('status','Sent ' + self.echoed + " of " + self.max); 
 

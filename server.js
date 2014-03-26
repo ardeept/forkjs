@@ -4,30 +4,35 @@
 
 
 
-var express        		= require('express');
 var cp 					= require('child_process');
+var util 				= require('util');
 var EventEmitter 		= require('events').EventEmitter;
-var fork_server_port 	= 8081;
-var process_path 		= "/processes/";
 
-// array of child processes
-var child_processes = [];
+var config        		= require('./config/server');
+var Child_handle 		= require('./lib/child_handle');
+
+var fork_server_port 	= config.fork_server_port;
+var process_path 		= config.process_path;
 
 var Server = function()
 {
-	var self 			= this;
+	var self 				= this;
 
-	self.child_processes = {};
+	// this will store all the instances
+	self.child_processes 	= {};
+
+	// this will receive all the remote commands
+	self.http_server		= require('express').createServer();
 
 	self.run = function()
 	{
+		self.run_remote_command_handler();
+
 		self.log('info',"Server running");
 	}
 
 	self.log = function(type,message)
 	{
-		// output the message to the console
-
 		console.log("[" + type + "] \t", new Date(), "\t", message);
 	}
 
@@ -41,40 +46,33 @@ var Server = function()
 		}
 		else
 		{
-			self.child_processes[p] = cp.fork(__dirname + process_path + 'fc_app.js',[p]);
-		
-			// console.log(self.child_processes[p]);
+	
+			var process 	= __dirname + process_path + 'fc_app.js';
+			var id 			= p;
 
-			if(self.child_processes[p])
-			{
-				self.child_processes[p].on('error', self.child_error);
-				self.child_processes[p].on('message', self.child_message);
-				self.child_processes[p].on('close', self.child_closed);
-			}
-			else
-			{
-				self.child_error("ERROR","CAN't SPAWN");
-			}	
+			var c = new Child_handle({ process: process, id:id});
+
+			c.on('closed',self.child_closed);
+			c.on('error',self.child_error);
+
+			self.child_processes[id] = c;
+			self.child_processes[id].init();
+
 		}
 	}
 
-	self.child_message = function(m)
+	self.child_closed = function(id, code, signal)
 	{
-		self.log("info","child message: " + m.id  + " [" + m.type + "]\t" + m.message);
-		// console.log(m);
-	}
-
-	self.child_closed = function(code, signal)
-	{
+		delete self.child_processes[id];
 		self.log("info","child closed: " + code  + " [" + signal + "]");
-		// console.log(m);
 	}
 
-	self.child_error = function(code, signal)
+	self.child_error = function(id, code, signal)
 	{
+		delete self.child_processes[id];
 		self.log("info","child error: " + code  + " [" + signal + "]");
-		// console.log(m);
 	}
+	
 
 
 	self.send_command = function(id, message)
@@ -94,14 +92,14 @@ var Server = function()
 		if(self.child_processes[id])
 		{
 			self.child_processes[id].kill();
+
+			delete self.child_processes[id];
 		}
 		else
 		{
 			self.log("info","child error: Child not found");
 		}
 	}
-
-
 
 	self.remote_command = function(command, id)
 	{
@@ -149,31 +147,34 @@ var Server = function()
 			self.log("error","invalid ID");
 		}
 	}
+
+	self.run_remote_command_handler = function()
+	{
+		self.http_server.get('/', function(req, res){
+		  var p = req.query;
+
+		  // console.log("HTTP REQ:",p);
+		  
+		  if(p['id'] && p['action'])
+		  {
+		  	self.remote_command(p['action'],p['id']);
+
+		  	res.send('ACK');	
+		  }
+		  else
+		  {
+		  	res.send('INVALID_PARAM');
+		  }  
+		});
+
+		self.http_server.listen(fork_server_port);
+
+		self.log("info", "forkJS SERVER LISTENING at " + fork_server_port);
+	}
 }
+
+
+
 
 var s = new Server();
 s.run();
-
-
-var app = require('express').createServer();
-
-app.get('/', function(req, res){
-  var p = req.query;
-
-  console.log("HTTP REQ:",p);
-  
-  if(p['id'] && p['action'])
-  {
-  	s.remote_command(p['action'],p['id']);
-
-  	res.send('ACK');	
-  }
-  else
-  {
-  	res.send('INVALID_PARAM');
-  }  
-});
-
-app.listen(fork_server_port);
-
-console.log("forkJS SERVER LISTENING at " + fork_server_port);

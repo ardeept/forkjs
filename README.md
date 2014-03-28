@@ -5,6 +5,18 @@ ForkJS is a simple framework which basically lets you easily manage nodeJS proce
 
 To test
 ----
+1. Run server.js on one terminal
+	
+		-
+		node server.js
+		-
+2. Run tests on another terminal
+		
+		- 
+		node tests/simple.js
+		node tests/multiple.js
+		node tests/dynamic.js
+		-
 
 
 server.js

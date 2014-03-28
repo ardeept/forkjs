@@ -24,7 +24,8 @@ var Echo = function(c)
    {
       self.id     = self.config.id;
       
-      self.max    = Math.floor((Math.random()*10)+1);;
+      // use the ID as the max count
+      self.max    = self.id;
    
       self.process = false;
       self.status  = 'ready';

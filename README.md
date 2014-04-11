@@ -5,6 +5,11 @@ ForkJS is a simple framework which basically lets you easily manage nodeJS proce
 
 To test
 ----
+	
+	On terminal 1: node server.js
+
+
+	On terminal 2: curl "http://127.0.0.1:8081?id=1&action=run"
 
 
 server.js

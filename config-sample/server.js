@@ -16,5 +16,4 @@ config.app						= {};
 
 config.app.host					= "localhost";
 
-
 module.exports 					= config;
